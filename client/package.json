@@ -2,7 +2,7 @@
   "name": "client",
   "version": "1.0.0",
   "type": "module",
-  "homepage": "https://yourusername.github.io/who-is-the-clown",
+  "homepage": "https://bsse23094.github.io/who-is-the-clown",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
