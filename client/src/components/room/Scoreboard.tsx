@@ -1,4 +1,4 @@
-import { Crown, Trophy, Target, TrendingUp, ArrowRight, Sparkles } from "lucide-react";
+import { Crown, Trophy, Target, TrendingUp, ArrowRight } from "lucide-react";
 import "./Scoreboard.scss";
 
 interface ScoreboardProps {

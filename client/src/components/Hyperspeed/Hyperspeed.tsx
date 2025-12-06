@@ -309,7 +309,7 @@ class CarLights {
       )
     });
 
-    material.onBeforeCompile = shader => {
+    material.onBeforeCompile = (shader: any) => {
       shader.vertexShader = shader.vertexShader.replace(
         '#include <getDistortion_vertex>',
         typeof this.options.distortion === 'object' ? this.options.distortion.getDistortion : ''
@@ -430,7 +430,7 @@ class LightsSticks {
       )
     });
 
-    material.onBeforeCompile = shader => {
+    material.onBeforeCompile = (shader: any) => {
       shader.vertexShader = shader.vertexShader.replace(
         '#include <getDistortion_vertex>',
         typeof this.options.distortion === 'object' ? this.options.distortion.getDistortion : ''
@@ -464,7 +464,7 @@ class Road {
     this.uTime = { value: 0 };
   }
 
-  createPlane(side: number, width: number, isRoad: boolean) {
+  createPlane(side: number, _width: number, isRoad: boolean) {
     const options = this.options;
     const segments = 100;
     const geometry = new THREE.PlaneGeometry(
@@ -522,7 +522,7 @@ class Road {
       )
     });
 
-    material.onBeforeCompile = shader => {
+    material.onBeforeCompile = (shader: any) => {
       shader.vertexShader = shader.vertexShader.replace(
         '#include <getDistortion_vertex>',
         typeof this.options.distortion === 'object' ? this.options.distortion.getDistortion : ''
