@@ -1,0 +1,132 @@
+.answer-form {
+  width: 100%;
+  text-align: center;
+  font-family: 'Elms Sans', sans-serif;
+
+  .timer {
+    margin-bottom: 2rem;
+
+    .timer-circle {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: conic-gradient(
+        rgba(255, 255, 255, 0.3) 0%,
+        rgba(255, 255, 255, 0.3) calc(var(--progress) * 100%),
+        rgba(255, 255, 255, 0.1) calc(var(--progress) * 100%),
+        rgba(255, 255, 255, 0.1) 100%
+      );
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      font-weight: 300;
+      color: rgba(255, 255, 255, 0.9);
+      position: relative;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+
+      &::before {
+        content: "";
+        position: absolute;
+        width: 64px;
+        height: 64px;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(10px);
+        border-radius: 50%;
+        z-index: 0;
+      }
+
+      span {
+        position: relative;
+        z-index: 1;
+      }
+    }
+  }
+
+  .prompt {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 1.5rem;
+    font-weight: 300;
+    margin-bottom: 2rem;
+  }
+
+  form {
+    .answer-input {
+      width: 100%;
+      padding: 1rem;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      font-size: 1rem;
+      font-family: 'Elms Sans', sans-serif;
+      font-weight: 300;
+      resize: vertical;
+      margin-bottom: 0.5rem;
+      transition: all 0.3s ease;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(10px);
+      color: rgba(255, 255, 255, 0.9);
+
+      &::placeholder {
+        color: rgba(255, 255, 255, 0.4);
+      }
+
+      &:focus {
+        outline: none;
+        border-color: rgba(255, 255, 255, 0.4);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      }
+    }
+
+    .char-count {
+      text-align: right;
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+    }
+  }
+
+  .submitted {
+    padding: 2rem;
+
+    .check-icon {
+      width: 80px;
+      height: 80px;
+      background: rgba(72, 187, 120, 0.3);
+      color: rgba(255, 255, 255, 0.9);
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      animation: checkPop 0.5s ease-out;
+      border: 1px solid rgba(72, 187, 120, 0.5);
+      backdrop-filter: blur(10px);
+    }
+
+    p {
+      font-size: 1.3rem;
+      font-weight: 300;
+      color: rgba(255, 255, 255, 0.9);
+      margin: 0.5rem 0;
+    }
+
+    .wait {
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 1rem;
+    }
+  }
+}
+
+@keyframes checkPop {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}

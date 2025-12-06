@@ -1,0 +1,123 @@
+.home-page {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+
+  .hero {
+    margin-bottom: 4rem;
+
+    .title {
+      font-family: "Elms Sans", sans-serif;
+      font-size: 4rem;
+      font-weight: 300;
+      margin-bottom: 1rem;
+      letter-spacing: 0.5px;
+      color: #fff;
+
+      .title-text {
+        display: block;
+        font-size: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 4px;
+        font-weight: 400;
+        opacity: 0.6;
+        margin-bottom: 0.5rem;
+      }
+
+      .title-highlight {
+        display: block;
+        font-size: 4rem;
+        font-weight: 200;
+        letter-spacing: 2px;
+      }
+    }
+
+    .subtitle {
+      font-size: 1rem;
+      color: rgba(255, 255, 255, 0.5);
+      margin-bottom: 3rem;
+      font-weight: 300;
+      letter-spacing: 1px;
+    }
+
+    .description {
+      display: none;
+    }
+
+    .btn-hero {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 2rem;
+      font-size: 0.875rem;
+      font-weight: 400;
+      color: #fff;
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      font-family: "Elms Sans", sans-serif;
+
+      .btn-icon {
+        width: 18px;
+        height: 18px;
+        transition: transform 0.2s ease;
+      }
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.5);
+
+        .btn-icon {
+          transform: translateX(3px);
+        }
+      }
+
+      &:active {
+        background: rgba(255, 255, 255, 0.1);
+      }
+    }
+  }
+
+  .features {
+    display: none;
+  }
+
+  @media (max-width: 768px) {
+    padding: 1rem;
+
+    .hero {
+      margin-bottom: 3rem;
+
+      .title {
+        font-size: 2.5rem;
+
+        .title-text {
+          font-size: 0.75rem;
+        }
+
+        .title-highlight {
+          font-size: 2.5rem;
+        }
+      }
+
+      .subtitle {
+        font-size: 0.875rem;
+      }
+
+      .btn-hero {
+        padding: 0.65rem 1.5rem;
+        font-size: 0.75rem;
+      }
+    }
+  }
+}

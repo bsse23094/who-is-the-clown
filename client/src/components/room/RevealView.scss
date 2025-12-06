@@ -1,0 +1,102 @@
+.reveal-view {
+  width: 100%;
+  text-align: center;
+  font-family: 'Elms Sans', sans-serif;
+
+  .clown-reveal {
+    margin-bottom: 3rem;
+    animation: revealBounce 0.8s ease-out;
+
+    h2 {
+      font-size: 2rem;
+      font-weight: 300;
+      color: rgba(255, 255, 255, 0.9);
+      margin-bottom: 1rem;
+    }
+
+    .clown-name {
+      font-size: 3rem;
+      font-weight: 300;
+      color: rgba(255, 255, 255, 0.95);
+      margin-bottom: 1rem;
+      text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+    }
+
+    &.you .clown-name {
+      color: rgba(255, 255, 255, 1);
+      text-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
+    }
+
+    .roast {
+      font-size: 1.3rem;
+      font-weight: 300;
+      color: rgba(255, 255, 255, 0.7);
+      font-style: italic;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+  }
+
+  .answers-section {
+    h3 {
+      font-size: 1.5rem;
+      font-weight: 300;
+      color: rgba(255, 255, 255, 0.9);
+      margin-bottom: 1rem;
+    }
+
+    .answers-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+
+      .answer-card {
+        background: rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(20px);
+        padding: 1.5rem;
+        border-radius: 8px;
+        text-align: left;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        transition: all 0.3s ease;
+
+        &:hover {
+          border-color: rgba(255, 255, 255, 0.3);
+          transform: translateY(-2px);
+        }
+
+        &.clown {
+          background: rgba(252, 129, 129, 0.1);
+          border-color: rgba(252, 129, 129, 0.4);
+          box-shadow: 0 0 20px rgba(252, 129, 129, 0.2);
+        }
+
+        .player-name {
+          font-weight: 300;
+          color: rgba(255, 255, 255, 0.95);
+          margin-bottom: 0.5rem;
+          font-size: 1.1rem;
+        }
+
+        .answer-text {
+          color: rgba(255, 255, 255, 0.7);
+          line-height: 1.5;
+          font-weight: 300;
+        }
+      }
+    }
+  }
+}
+
+@keyframes revealBounce {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}

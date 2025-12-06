@@ -1,0 +1,52 @@
+.prompt-view {
+  text-align: center;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  font-family: "Elms Sans", sans-serif;
+
+  h2 {
+    color: #fff;
+    font-size: 1.25rem;
+    font-weight: 300;
+    margin-bottom: 2rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .prompt-card {
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(20px);
+    padding: 3rem 2.5rem;
+    border-radius: 4px;
+    margin-bottom: 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    animation: slideIn 0.5s ease-out;
+
+    .prompt-text {
+      color: #fff;
+      font-size: 1.5rem;
+      font-weight: 300;
+      margin: 0;
+      line-height: 1.6;
+      letter-spacing: 0.5px;
+    }
+  }
+
+  .hint {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.875rem;
+    letter-spacing: 1px;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
