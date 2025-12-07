@@ -1,0 +1,837 @@
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import * as THREE from 'three';
+import Lightning from '../components/Lightning/Lightning';
+import './LocalRacingPage.scss';
+
+interface GameState {
+  player1Progress: number;
+  player2Progress: number;
+  player1Lap: number;
+  player2Lap: number;
+}
+
+export default function LocalRacingPage() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [gameStarted, setGameStarted] = useState(false);
+  const [countdown, setCountdown] = useState(3);
+  const [gameState, setGameState] = useState<GameState>({
+    player1Progress: 0,
+    player2Progress: 0,
+    player1Lap: 1,
+    player2Lap: 1,
+  });
+  const [gameOver, setGameOver] = useState(false);
+  const [winner, setWinner] = useState<string>('');
+  const navigate = useNavigate();
+
+  const RACE_LENGTH = 500; // Total race length
+  const FINISH_LINE = 450; // Finish line position
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    // Scene setup
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x000000); // Pure black for lightning effect
+    scene.fog = new THREE.Fog(0x000000, 50, 400);
+
+    // Renderer
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    containerRef.current.appendChild(renderer.domElement);
+
+    // Lighting - Cyberpunk style
+    const trackHeight = 20; // Define early for lights
+    
+    const ambientLight = new THREE.AmbientLight(0x8844ff, 0.4);
+    scene.add(ambientLight);
+    
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(0, 50, 20);
+    directionalLight.castShadow = true;
+    scene.add(directionalLight);
+    
+    // Animated neon lights
+    const neonLights: THREE.PointLight[] = [];
+    for (let i = 0; i < 10; i++) {
+      const color = i % 2 === 0 ? 0xff00ff : 0x00ffff;
+      const light = new THREE.PointLight(color, 2, 50);
+      light.position.set(
+        Math.random() * 40 - 20,
+        trackHeight + 10,
+        -i * 50
+      );
+      scene.add(light);
+      neonLights.push(light);
+    }
+
+    // Create SMOOTH elevated racing track with cyberpunk style
+    const trackGroup = new THREE.Group();
+    const trackWidth = 15;
+    const segmentLength = 30;
+    const numSegments = 30;
+    
+    // Create smooth curved path
+    const pathPoints: THREE.Vector3[] = [];
+    for (let i = 0; i < numSegments * 10; i++) {
+      const t = i / 10;
+      const x = Math.sin(t * 0.3) * 8;
+      const y = trackHeight;
+      const z = -t * segmentLength;
+      pathPoints.push(new THREE.Vector3(x, y, z));
+    }
+    const path = new THREE.CatmullRomCurve3(pathPoints);
+    
+    for (let i = 0; i < numSegments; i++) {
+      const segment = new THREE.Group();
+      const t = i / numSegments;
+      const position = path.getPoint(t);
+      
+      // Main track surface - glowing road (floating, no walls)
+      const trackGeometry = new THREE.BoxGeometry(trackWidth, 0.5, segmentLength);
+      const trackMaterial = new THREE.MeshStandardMaterial({ 
+        color: 0x2a1a4a,
+        emissive: 0x7744ff,
+        emissiveIntensity: 0.4,
+        roughness: 0.2,
+        metalness: 0.8,
+      });
+      const trackMesh = new THREE.Mesh(trackGeometry, trackMaterial);
+      trackMesh.position.copy(position);
+      trackMesh.castShadow = true;
+      trackMesh.receiveShadow = true;
+      segment.add(trackMesh);
+      
+      // Glowing road center line
+      const lineGeometry = new THREE.BoxGeometry(0.2, 0.6, segmentLength);
+      const lineMaterial = new THREE.MeshStandardMaterial({ 
+        color: 0xffff00,
+        emissive: 0xffff00,
+        emissiveIntensity: 1,
+      });
+      const centerLine = new THREE.Mesh(lineGeometry, lineMaterial);
+      centerLine.position.set(position.x, position.y + 0.3, position.z);
+      segment.add(centerLine);
+      
+      // Neon edge markers (glowing strips, not walls)
+      const edgeStripeGeometry = new THREE.BoxGeometry(0.2, 0.3, segmentLength);
+      const edgeStripeMaterial1 = new THREE.MeshStandardMaterial({ 
+        color: 0xff00ff,
+        emissive: 0xff00ff,
+        emissiveIntensity: 1,
+      });
+      const edgeStripeMaterial2 = new THREE.MeshStandardMaterial({ 
+        color: 0x00ffff,
+        emissive: 0x00ffff,
+        emissiveIntensity: 1,
+      });
+      
+      const leftStripe = new THREE.Mesh(edgeStripeGeometry, edgeStripeMaterial1);
+      leftStripe.position.set(position.x - trackWidth/2 + 0.2, position.y + 0.25, position.z);
+      segment.add(leftStripe);
+      
+      const rightStripe = new THREE.Mesh(edgeStripeGeometry, edgeStripeMaterial2);
+      rightStripe.position.set(position.x + trackWidth/2 - 0.2, position.y + 0.25, position.z);
+      segment.add(rightStripe);
+      
+      // Support pillars below with glow
+      if (i % 3 === 0) {
+        const pillarGeometry = new THREE.CylinderGeometry(0.4, 0.6, trackHeight, 8);
+        const pillarMaterial = new THREE.MeshStandardMaterial({ 
+          color: 0x4400aa,
+          emissive: 0x7700ff,
+          emissiveIntensity: 0.7,
+          roughness: 0.2,
+          metalness: 0.9,
+        });
+        
+        const pillar1 = new THREE.Mesh(pillarGeometry, pillarMaterial);
+        pillar1.position.set(position.x - trackWidth/2.5, trackHeight/2, position.z);
+        pillar1.castShadow = true;
+        segment.add(pillar1);
+        
+        const pillar2 = new THREE.Mesh(pillarGeometry, pillarMaterial);
+        pillar2.position.set(position.x + trackWidth/2.5, trackHeight/2, position.z);
+        pillar2.castShadow = true;
+        segment.add(pillar2);
+      }
+      
+      trackGroup.add(segment);
+    }
+    
+    // Starting platform with glow (floating)
+    const startPlatform = new THREE.Mesh(
+      new THREE.BoxGeometry(trackWidth + 5, 0.5, 40),
+      new THREE.MeshStandardMaterial({ 
+        color: 0x003388,
+        emissive: 0x0066ff,
+        emissiveIntensity: 0.6,
+        roughness: 0.2,
+        metalness: 0.8,
+      })
+    );
+    startPlatform.position.set(0, trackHeight, 20);
+    startPlatform.castShadow = true;
+    trackGroup.add(startPlatform);
+    
+    scene.add(trackGroup);
+
+    // Add STARS in the background like the tunnel
+    const starsGeometry = new THREE.BufferGeometry();
+    const starVertices: number[] = [];
+    for (let i = 0; i < 2000; i++) {
+      const x = (Math.random() - 0.5) * 400;
+      const y = Math.random() * 200;
+      const z = -Math.random() * 500;
+      starVertices.push(x, y, z);
+    }
+    starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
+    const starsMaterial = new THREE.PointsMaterial({ 
+      color: 0xffffff, 
+      size: 0.5,
+      transparent: true,
+      opacity: 0.8,
+    });
+    const stars = new THREE.Points(starsGeometry, starsMaterial);
+    scene.add(stars);
+
+    // Create ENHANCED CYBERPUNK cars with aggressive design
+    const createCar = (color: number) => {
+      const carGroup = new THREE.Group();
+      
+      // Main car body - sleek and aggressive
+      const bodyGeometry = new THREE.BoxGeometry(2, 0.9, 4);
+      const bodyMaterial = new THREE.MeshStandardMaterial({ 
+        color,
+        emissive: color,
+        emissiveIntensity: 0.5,
+        metalness: 0.98,
+        roughness: 0.02,
+      });
+      const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+      body.position.y = 0.5;
+      body.castShadow = true;
+      carGroup.add(body);
+      
+      // Front end spoiler/bumper - aggressive
+      const frontSpoilerGeometry = new THREE.BoxGeometry(2.2, 0.15, 0.3);
+      const spoilerMaterial = new THREE.MeshStandardMaterial({ 
+        color: color,
+        emissive: color,
+        emissiveIntensity: 0.7,
+        metalness: 1,
+        roughness: 0.05,
+      });
+      const frontSpoiler = new THREE.Mesh(frontSpoilerGeometry, spoilerMaterial);
+      frontSpoiler.position.set(0, 0.8, 2.2);
+      carGroup.add(frontSpoiler);
+      
+      // Cockpit/windshield - darker tinted
+      const cockpitGeometry = new THREE.BoxGeometry(1.6, 0.7, 2.2);
+      const cockpitMaterial = new THREE.MeshStandardMaterial({ 
+        color: 0x0a0a1e,
+        emissive: color,
+        emissiveIntensity: 0.3,
+        metalness: 0.7,
+        roughness: 0.15,
+        transparent: true,
+        opacity: 0.7,
+      });
+      const cockpit = new THREE.Mesh(cockpitGeometry, cockpitMaterial);
+      cockpit.position.set(0, 1.1, 0.3);
+      carGroup.add(cockpit);
+      
+      // Rear spoiler - tall and pronounced
+      const rearSpoilerGeometry = new THREE.BoxGeometry(2.2, 0.8, 0.15);
+      const rearSpoiler = new THREE.Mesh(rearSpoilerGeometry, spoilerMaterial);
+      rearSpoiler.position.set(0, 1.5, -2);
+      carGroup.add(rearSpoiler);
+      
+      // Aggressive wheels with neon rims
+      const wheelGeometry = new THREE.CylinderGeometry(0.45, 0.45, 0.5, 20);
+      const wheelMaterial = new THREE.MeshStandardMaterial({ 
+        color: 0x0a0a0a,
+        metalness: 0.95,
+        roughness: 0.1,
+      });
+      
+      const rimGeometry = new THREE.TorusGeometry(0.45, 0.08, 12, 32);
+      const rimMaterial = new THREE.MeshStandardMaterial({ 
+        color: color,
+        emissive: color,
+        emissiveIntensity: 1.5,
+        metalness: 1,
+        roughness: 0.05,
+      });
+      
+      const wheelPositions = [
+        [-1.2, 0, 1.5],
+        [1.2, 0, 1.5],
+        [-1.2, 0, -1.5],
+        [1.2, 0, -1.5],
+      ];
+      
+      wheelPositions.forEach(pos => {
+        // Main wheel
+        const wheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
+        wheel.position.set(pos[0], pos[1], pos[2]);
+        wheel.rotation.z = Math.PI / 2;
+        wheel.castShadow = true;
+        carGroup.add(wheel);
+        
+        // Neon rim
+        const rim = new THREE.Mesh(rimGeometry, rimMaterial);
+        rim.position.set(pos[0] + (pos[0] > 0 ? 0.3 : -0.3), pos[1], pos[2]);
+        rim.rotation.y = Math.PI / 2;
+        carGroup.add(rim);
+      });
+      
+      // Advanced headlights - dual strips
+      const headlightGeometry = new THREE.BoxGeometry(0.3, 0.15, 0.4);
+      const headlightMaterial = new THREE.MeshStandardMaterial({ 
+        color: 0xccffff,
+        emissive: 0xccffff,
+        emissiveIntensity: 2.5,
+      });
+      
+      const headlight1 = new THREE.Mesh(headlightGeometry, headlightMaterial);
+      headlight1.position.set(-0.8, 0.5, 2.1);
+      carGroup.add(headlight1);
+      
+      const headlight2 = new THREE.Mesh(headlightGeometry, headlightMaterial);
+      headlight2.position.set(0.8, 0.5, 2.1);
+      carGroup.add(headlight2);
+      
+      // Aggressive taillights
+      const taillightMaterial = new THREE.MeshStandardMaterial({ 
+        color: 0xff1111,
+        emissive: 0xff1111,
+        emissiveIntensity: 2,
+      });
+      
+      const taillight1 = new THREE.Mesh(headlightGeometry, taillightMaterial);
+      taillight1.position.set(-0.8, 0.5, -2.1);
+      carGroup.add(taillight1);
+      
+      const taillight2 = new THREE.Mesh(headlightGeometry, taillightMaterial);
+      taillight2.position.set(0.8, 0.5, -2.1);
+      carGroup.add(taillight2);
+      
+      // Side stripes for aggression
+      const stripeGeometry = new THREE.BoxGeometry(0.1, 0.8, 3);
+      const stripeMaterial = new THREE.MeshStandardMaterial({ 
+        color: color,
+        emissive: color,
+        emissiveIntensity: 0.8,
+        metalness: 0.9,
+      });
+      
+      const stripeLeft = new THREE.Mesh(stripeGeometry, stripeMaterial);
+      stripeLeft.position.set(-1.1, 0.5, 0);
+      carGroup.add(stripeLeft);
+      
+      const stripeRight = new THREE.Mesh(stripeGeometry, stripeMaterial);
+      stripeRight.position.set(1.1, 0.5, 0);
+      carGroup.add(stripeRight);
+      
+      // Undercar neon glow - intense
+      const underglowGeometry = new THREE.PlaneGeometry(2.1, 3.8);
+      const underglowMaterial = new THREE.MeshBasicMaterial({ 
+        color: color,
+        transparent: true,
+        opacity: 0.6,
+        side: THREE.DoubleSide,
+        blending: THREE.AdditiveBlending,
+      });
+      const underglow = new THREE.Mesh(underglowGeometry, underglowMaterial);
+      underglow.rotation.x = -Math.PI / 2;
+      underglow.position.y = 0.02;
+      carGroup.add(underglow);
+      
+      return carGroup;
+    };
+
+    const car1 = createCar(0xff0000); // Red
+    car1.position.set(-3, trackHeight + 2, 0);
+    car1.userData.velocity = { x: 0, y: 0, z: 0 };
+    car1.userData.score = 0;
+    car1.userData.radius = 1.2; // For collision detection
+    car1.castShadow = true;
+    scene.add(car1);
+    
+    const car2 = createCar(0x0000ff); // Blue
+    car2.position.set(3, trackHeight + 2, 0);
+    car2.userData.velocity = { x: 0, y: 0, z: 0 };
+    car2.userData.score = 0;
+    car2.userData.radius = 1.2; // For collision detection
+    car2.castShadow = true;
+    scene.add(car2);
+
+    const cars = [car1, car2];
+
+    // Create COINS (collectibles)
+    const coins: THREE.Mesh[] = [];
+    const coinGeometry = new THREE.CylinderGeometry(0.5, 0.5, 0.2, 16);
+    const coinMaterial = new THREE.MeshStandardMaterial({ 
+      color: 0xffff00,
+      emissive: 0xffff00,
+      emissiveIntensity: 1,
+      metalness: 1,
+      roughness: 0.2,
+    });
+
+    for (let i = 0; i < 50; i++) {
+      const coin = new THREE.Mesh(coinGeometry, coinMaterial);
+      const angle = Math.random() * Math.PI * 2;
+      const radius = Math.random() * (trackWidth / 2 - 2);
+      const x = Math.cos(angle) * radius + Math.sin(i * 0.3) * 8;
+      const z = -i * 15 - 30;
+      
+      coin.position.set(x, trackHeight + 3, z);
+      coin.rotation.x = Math.PI / 2;
+      coin.userData.collected = false;
+      scene.add(coin);
+      coins.push(coin);
+    }
+
+    // Create OBSTACLES
+    const obstacles: THREE.Mesh[] = [];
+    const obstacleGeometry = new THREE.BoxGeometry(2, 3, 2);
+    const obstacleMaterial = new THREE.MeshStandardMaterial({ 
+      color: 0xff0000,
+      emissive: 0xff0000,
+      emissiveIntensity: 0.5,
+      metalness: 0.8,
+      roughness: 0.2,
+    });
+
+    for (let i = 0; i < 20; i++) {
+      const obstacle = new THREE.Mesh(obstacleGeometry, obstacleMaterial);
+      const x = (Math.random() - 0.5) * (trackWidth - 4) + Math.sin(i * 0.3) * 8;
+      const z = -i * 30 - 50;
+      
+      obstacle.position.set(x, trackHeight + 1.5, z);
+      obstacle.userData.active = true;
+      scene.add(obstacle);
+      obstacles.push(obstacle);
+    }
+
+    // Split-screen cameras
+    const camera1 = new THREE.PerspectiveCamera(75, window.innerWidth / 2 / window.innerHeight, 0.1, 1000);
+    camera1.position.set(-3, trackHeight + 8, 15);
+    camera1.lookAt(-3, trackHeight, 0);
+    
+    const camera2 = new THREE.PerspectiveCamera(75, window.innerWidth / 2 / window.innerHeight, 0.1, 1000);
+    camera2.position.set(3, trackHeight + 8, 15);
+    camera2.lookAt(3, trackHeight, 0);
+
+    // Keyboard input
+    const keys: { [key: string]: boolean } = {};
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      keys[e.key] = true;
+    };
+    
+    const handleKeyUp = (e: KeyboardEvent) => {
+      keys[e.key] = false;
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    // Countdown
+    const countdownInterval = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          setGameStarted(true);
+          clearInterval(countdownInterval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    // Game timer
+    let gameTime = 0;
+    const gameTimer = setInterval(() => {
+      if (gameStarted && !gameOver) {
+        gameTime++;
+        setGameState(prev => {
+          const newTimeLeft = Math.max(0, prev.timeLeft - 1);
+          if (newTimeLeft === 0) {
+            setGameOver(true);
+          }
+          return { ...prev, timeLeft: newTimeLeft };
+        });
+      }
+    }, 1000);
+
+    // Animation loop
+    let animationId: number;
+    const animate = () => {
+      animationId = requestAnimationFrame(animate);
+
+      // Animate stars and particles
+      if (stars.geometry.attributes.position) {
+        const positions = stars.geometry.attributes.position.array as Float32Array;
+        for (let i = 0; i < positions.length; i += 3) {
+          positions[i + 2] += 0.5; // Move stars forward
+          if (positions[i + 2] > 20) {
+            positions[i + 2] = -500;
+          }
+        }
+        stars.geometry.attributes.position.needsUpdate = true;
+      }
+
+      // Animate neon lights
+      neonLights.forEach((light, i) => {
+        light.intensity = 2 + Math.sin(Date.now() * 0.003 + i) * 1;
+      });
+
+      // Rotate coins
+      coins.forEach(coin => {
+        if (!coin.userData.collected) {
+          coin.rotation.z += 0.05;
+          coin.position.y = trackHeight + 3 + Math.sin(Date.now() * 0.003 + coin.position.z) * 0.5;
+        }
+      });
+
+      // Pulse obstacles
+      obstacles.forEach(obstacle => {
+        if (obstacle.userData.active) {
+          const scale = 1 + Math.sin(Date.now() * 0.005 + obstacle.position.z) * 0.1;
+          obstacle.scale.set(scale, scale, scale);
+        }
+      });
+
+      if (gameStarted && !gameOver) {
+        const speed = 0.4;
+        const gravity = 0.5;
+
+        // Player 1 controls (WASD)
+        if (keys['w']) {
+          cars[0].position.z -= speed;
+          cars[0].rotation.y = 0;
+        }
+        if (keys['s']) {
+          cars[0].position.z += speed;
+          cars[0].rotation.y = Math.PI;
+        }
+        if (keys['a']) {
+          cars[0].position.x -= speed;
+          cars[0].rotation.y = Math.PI / 2;
+        }
+        if (keys['d']) {
+          cars[0].position.x += speed;
+          cars[0].rotation.y = -Math.PI / 2;
+        }
+        
+        // Player 2 controls (Arrow keys) - Normal directions
+        if (keys['ArrowUp']) {
+          cars[1].position.z -= speed;
+          cars[1].rotation.y = 0;
+        }
+        if (keys['ArrowDown']) {
+          cars[1].position.z += speed;
+          cars[1].rotation.y = Math.PI;
+        }
+        if (keys['ArrowLeft']) {
+          cars[1].position.x -= speed;
+          cars[1].rotation.y = Math.PI / 2;
+        }
+        if (keys['ArrowRight']) {
+          cars[1].position.x += speed;
+          cars[1].rotation.y = -Math.PI / 2;
+        }
+        
+        // Check if cars fall off track
+        cars.forEach((car, index) => {
+          const t = Math.abs(car.position.z / 30) / numSegments;
+          const trackPoint = path.getPoint(Math.max(0, Math.min(0.99, t)));
+          const trackCenterX = trackPoint.x;
+          const distanceFromCenter = Math.abs(car.position.x - trackCenterX);
+          
+          // If car is off the track or below it
+          if (distanceFromCenter > trackWidth / 2 || car.position.y < trackHeight - 5) {
+            // Apply gravity
+            car.position.y -= gravity;
+            
+            // Reset if fallen too far
+            if (car.position.y < -50) {
+              car.position.set(index === 0 ? -3 : 3, trackHeight + 2, 0);
+              car.userData.velocity = { x: 0, y: 0, z: 0 };
+              // Lose points when falling
+              car.userData.score = Math.max(0, car.userData.score - 5);
+            }
+          } else {
+            // Keep car on track
+            car.position.y = trackHeight + 2;
+          }
+
+          // Check coin collection
+          coins.forEach(coin => {
+            if (!coin.userData.collected) {
+              const distance = car.position.distanceTo(coin.position);
+              if (distance < 2) {
+                coin.userData.collected = true;
+                coin.visible = false;
+                car.userData.score += 10;
+                
+                // Particle burst effect
+                const burstGeometry = new THREE.BufferGeometry();
+                const burstVertices: number[] = [];
+                for (let i = 0; i < 20; i++) {
+                  burstVertices.push(
+                    coin.position.x + (Math.random() - 0.5) * 2,
+                    coin.position.y + (Math.random() - 0.5) * 2,
+                    coin.position.z + (Math.random() - 0.5) * 2
+                  );
+                }
+                burstGeometry.setAttribute('position', new THREE.Float32BufferAttribute(burstVertices, 3));
+                const burstMaterial = new THREE.PointsMaterial({ 
+                  color: 0xffff00, 
+                  size: 0.3,
+                  transparent: true,
+                });
+                const burst = new THREE.Points(burstGeometry, burstMaterial);
+                scene.add(burst);
+                setTimeout(() => scene.remove(burst), 500);
+              }
+            }
+          });
+
+          // Check obstacle collision
+          obstacles.forEach(obstacle => {
+            if (obstacle.userData.active) {
+              const distance = new THREE.Vector2(
+                car.position.x - obstacle.position.x,
+                car.position.z - obstacle.position.z
+              ).length();
+              
+              if (distance < 2.5) {
+                obstacle.userData.active = false;
+                obstacle.visible = false;
+                
+                // Lose points on collision
+                car.userData.score = Math.max(0, car.userData.score - 15);
+                
+                // Explosion effect
+                const explosionGeometry = new THREE.BufferGeometry();
+                const explosionVertices: number[] = [];
+                for (let i = 0; i < 30; i++) {
+                  explosionVertices.push(
+                    obstacle.position.x + (Math.random() - 0.5) * 5,
+                    obstacle.position.y + (Math.random() - 0.5) * 5,
+                    obstacle.position.z + (Math.random() - 0.5) * 5
+                  );
+                }
+                explosionGeometry.setAttribute('position', new THREE.Float32BufferAttribute(explosionVertices, 3));
+                const explosionMaterial = new THREE.PointsMaterial({ 
+                  color: 0xff0000, 
+                  size: 0.5,
+                  transparent: true,
+                });
+                const explosion = new THREE.Points(explosionGeometry, explosionMaterial);
+                scene.add(explosion);
+                setTimeout(() => scene.remove(explosion), 500);
+                
+                // Push car back
+                car.position.z += 5;
+              }
+            }
+          });
+        });
+
+        // CAR-TO-CAR COLLISION DETECTION (cars can bump and push each other)
+        const car1Pos = cars[0].position;
+        const car2Pos = cars[1].position;
+        const carDistance = new THREE.Vector3(car1Pos.x - car2Pos.x, 0, car1Pos.z - car2Pos.z).length();
+        const minDistance = 2.5; // Sum of both car radii
+        
+        if (carDistance < minDistance) {
+          // Calculate push direction
+          const pushDirection = new THREE.Vector3(car1Pos.x - car2Pos.x, 0, car1Pos.z - car2Pos.z).normalize();
+          const pushStrength = 0.8;
+          
+          // Push cars apart
+          cars[0].position.add(pushDirection.multiplyScalar(pushStrength));
+          cars[1].position.sub(pushDirection.multiplyScalar(pushStrength));
+          
+          // Slight speed penalty for both cars on collision
+          cars[0].userData.score = Math.max(0, cars[0].userData.score - 2);
+          cars[1].userData.score = Math.max(0, cars[1].userData.score - 2);
+          
+          // Collision spark effect
+          const sparkGeometry = new THREE.BufferGeometry();
+          const sparkVertices: number[] = [];
+          const collisionPoint = new THREE.Vector3(
+            (car1Pos.x + car2Pos.x) / 2,
+            (car1Pos.y + car2Pos.y) / 2,
+            (car1Pos.z + car2Pos.z) / 2
+          );
+          for (let i = 0; i < 40; i++) {
+            sparkVertices.push(
+              collisionPoint.x + (Math.random() - 0.5) * 3,
+              collisionPoint.y + (Math.random() - 0.5) * 3,
+              collisionPoint.z + (Math.random() - 0.5) * 3
+            );
+          }
+          sparkGeometry.setAttribute('position', new THREE.Float32BufferAttribute(sparkVertices, 3));
+          const sparkMaterial = new THREE.PointsMaterial({ 
+            color: 0xffff00,
+            size: 0.4,
+            transparent: true,
+            blending: THREE.AdditiveBlending,
+          });
+          const sparks = new THREE.Points(sparkGeometry, sparkMaterial);
+          scene.add(sparks);
+          setTimeout(() => scene.remove(sparks), 600);
+        }
+
+        // Update scores in state
+        setGameState(prev => ({
+          ...prev,
+          player1Score: cars[0].userData.score,
+          player2Score: cars[1].userData.score,
+        }));
+
+        // Update cameras to follow cars
+        const camDistance = 15;
+        const camHeight = 8;
+        
+        camera1.position.x = cars[0].position.x;
+        camera1.position.y = cars[0].position.y + camHeight;
+        camera1.position.z = cars[0].position.z + camDistance;
+        camera1.lookAt(cars[0].position.x, cars[0].position.y, cars[0].position.z - 10);
+        
+        camera2.position.x = cars[1].position.x;
+        camera2.position.y = cars[1].position.y + camHeight;
+        camera2.position.z = cars[1].position.z + camDistance;
+        camera2.lookAt(cars[1].position.x, cars[1].position.y, cars[1].position.z - 10);
+      }
+
+      // Split-screen rendering
+      renderer.setScissorTest(true);
+
+      // Left viewport - Player 1
+      renderer.setViewport(0, 0, window.innerWidth / 2, window.innerHeight);
+      renderer.setScissor(0, 0, window.innerWidth / 2, window.innerHeight);
+      renderer.render(scene, camera1);
+
+      // Right viewport - Player 2
+      renderer.setViewport(window.innerWidth / 2, 0, window.innerWidth / 2, window.innerHeight);
+      renderer.setScissor(window.innerWidth / 2, 0, window.innerWidth / 2, window.innerHeight);
+      renderer.render(scene, camera2);
+
+      renderer.setScissorTest(false);
+    };
+
+    animate();
+
+    // Cleanup
+    return () => {
+      cancelAnimationFrame(animationId);
+      clearInterval(countdownInterval);
+      clearInterval(gameTimer);
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+      if (containerRef.current) {
+        containerRef.current.removeChild(renderer.domElement);
+      }
+      renderer.dispose();
+    };
+  }, [gameStarted, gameOver]);
+
+  return (
+    <div className="local-racing-page">
+      <div className="lightning-background">
+        <Lightning hue={220} xOffset={0} speed={1} intensity={1.2} size={1} />
+      </div>
+      <div ref={containerRef} className="game-container" />
+      
+      {countdown > 0 && (
+        <div className="countdown-overlay">
+          <h1>{countdown}</h1>
+        </div>
+      )}
+
+      {!gameStarted && countdown === 0 && (
+        <div className="countdown-overlay">
+          <h1>GO!</h1>
+        </div>
+      )}
+
+      {gameStarted && !gameOver && (
+        <div className="game-hud">
+          <div className="score-panel player1">
+            <div className="player-name">🔴 Player 1</div>
+            <div className="score">{gameState.player1Score}</div>
+            <div className="coins-label">COINS</div>
+          </div>
+          
+          <div className="timer-panel">
+            <div className="timer">{Math.floor(gameState.timeLeft / 60)}:{(gameState.timeLeft % 60).toString().padStart(2, '0')}</div>
+            <div className="timer-label">TIME LEFT</div>
+          </div>
+          
+          <div className="score-panel player2">
+            <div className="player-name">🔵 Player 2</div>
+            <div className="score">{gameState.player2Score}</div>
+            <div className="coins-label">COINS</div>
+          </div>
+        </div>
+      )}
+
+      {gameOver && (
+        <div className="game-over-overlay">
+          <div className="game-over-content">
+            <h1>🏁 RACE OVER! 🏁</h1>
+            <div className="final-scores">
+              <div className="final-score">
+                <span>🔴 Player 1:</span>
+                <span className="score-value">{gameState.player1Score}</span>
+              </div>
+              <div className="final-score">
+                <span>🔵 Player 2:</span>
+                <span className="score-value">{gameState.player2Score}</span>
+              </div>
+            </div>
+            <h2 className="winner">
+              {gameState.player1Score > gameState.player2Score 
+                ? '🎉 Player 1 WINS! 🎉' 
+                : gameState.player2Score > gameState.player1Score
+                ? '🎉 Player 2 WINS! 🎉'
+                : '🤝 IT\'S A TIE! 🤝'}
+            </h2>
+            <button className="play-again-button" onClick={() => window.location.reload()}>
+              🔄 Play Again
+            </button>
+            <button className="back-button" onClick={() => navigate('/')}>
+              ← Back to Menu
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!gameOver && (
+        <div className="controls-overlay">
+          <div className="controls-help">
+            <div className="player-controls">
+              <h3>🔴 Player 1 (Red)</h3>
+              <p>W/A/S/D - Move</p>
+              <p className="info">💰 Collect coins! Avoid obstacles!</p>
+            </div>
+            <div className="divider" />
+            <div className="player-controls">
+              <h3>🔵 Player 2 (Blue)</h3>
+              <p>Arrow Keys - Move</p>
+              <p className="info">💰 Collect coins! Avoid obstacles!</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
