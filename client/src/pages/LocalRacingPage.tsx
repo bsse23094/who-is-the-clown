@@ -26,7 +26,7 @@ export default function LocalRacingPage() {
   const navigate = useNavigate();
 
   const RACE_LENGTH = 750; // Total race distance
-  const FINISH_LINE_Z = -450; // Finish line position
+  const FINISH_LINE_Z = -675; // Finish line position
   const winnerRef = useRef<string>('');
 
   useEffect(() => {
