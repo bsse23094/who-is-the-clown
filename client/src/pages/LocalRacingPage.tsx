@@ -477,45 +477,53 @@ export default function LocalRacingPage() {
       });
 
       if (gameStarted && !gameOver) {
-        const speed = 0.4;
+        const baseSpeed = 0.4;
+        
+        // Rubber-banding: car behind gets speed boost
+        const car1Behind = cars[0].position.z > cars[1].position.z;
+        const speedMultiplier1 = car1Behind ? 1.3 : 1.0;
+        const speedMultiplier2 = !car1Behind ? 1.3 : 1.0;
+        
+        const speed1 = baseSpeed * speedMultiplier1;
+        const speed2 = baseSpeed * speedMultiplier2;
 
         // Player 1 controls (WASD)
         if (keys['w']) {
-          cars[0].position.z -= speed;
+          cars[0].position.z -= speed1;
           cars[0].rotation.y = 0;
         }
         if (keys['s']) {
-          cars[0].position.z += speed;
+          cars[0].position.z += speed1;
           cars[0].rotation.y = Math.PI;
         }
         if (keys['a']) {
-          cars[0].position.x -= speed;
+          cars[0].position.x -= speed1;
           cars[0].rotation.y = Math.PI / 2;
         }
         if (keys['d']) {
-          cars[0].position.x += speed;
+          cars[0].position.x += speed1;
           cars[0].rotation.y = -Math.PI / 2;
         }
         
         // Player 2 controls (Arrow keys) - Normal directions
         if (keys['ArrowUp']) {
-          cars[1].position.z -= speed;
+          cars[1].position.z -= speed2;
           cars[1].rotation.y = 0;
         }
         if (keys['ArrowDown']) {
-          cars[1].position.z += speed;
+          cars[1].position.z += speed2;
           cars[1].rotation.y = Math.PI;
         }
         if (keys['ArrowLeft']) {
-          cars[1].position.x -= speed;
+          cars[1].position.x -= speed2;
           cars[1].rotation.y = Math.PI / 2;
         }
         if (keys['ArrowRight']) {
-          cars[1].position.x += speed;
+          cars[1].position.x += speed2;
           cars[1].rotation.y = -Math.PI / 2;
         }
         
-        // Keep cars on track at all times
+        // Physics: keep cars on track or let them fall
         cars.forEach((car, index) => {
           const t = Math.abs(car.position.z / RACE_LENGTH);
           const trackPoint = path.getPoint(Math.max(0, Math.min(0.99, t)));
@@ -523,14 +531,29 @@ export default function LocalRacingPage() {
           const trackY = trackPoint.y;
           const distanceFromCenter = car.position.x - trackCenterX;
           
-          // Constrain car to track width
+          // Check if car is within track bounds
           const maxDistanceFromCenter = (trackWidth / 2) - 1;
-          if (Math.abs(distanceFromCenter) > maxDistanceFromCenter) {
-            car.position.x = trackCenterX + Math.sign(distanceFromCenter) * maxDistanceFromCenter;
-          }
+          const isOnTrack = Math.abs(distanceFromCenter) <= maxDistanceFromCenter;
           
-          // Always keep car on track surface
-          car.position.y = trackY + 2;
+          if (isOnTrack) {
+            // On track: keep car on surface (not below)
+            if (car.position.y < trackY + 2) {
+              car.position.y = trackY + 2;
+              car.userData.velocity.y = 0;
+            } else {
+              car.position.y = trackY + 2;
+            }
+          } else {
+            // Off track: apply gravity and fall
+            car.userData.velocity.y -= 0.02; // Gravity
+            car.position.y += car.userData.velocity.y;
+            
+            // Reset if fallen too far
+            if (car.position.y < -50) {
+              car.position.set(index === 0 ? -3 : 3, trackHeight + 2, Math.max(car.position.z, -50));
+              car.userData.velocity = { x: 0, y: 0, z: 0 };
+            }
+          }
 
           // Check if car crossed finish line
           if (car.position.z <= FINISH_LINE_Z && !gameOver) {
