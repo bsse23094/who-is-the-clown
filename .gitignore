@@ -39,3 +39,7 @@ Thumbs.db
 .cache
 .temp
 tmp/
+
+# Wrangler
+.wrangler/
+.dev.vars
