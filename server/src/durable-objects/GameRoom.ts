@@ -58,6 +58,21 @@ export class GameRoom {
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
     
+    // CORS headers for all responses
+    const corsHeaders = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Upgrade, Connection, Sec-WebSocket-Key, Sec-WebSocket-Version',
+    };
+
+    // Handle CORS preflight
+    if (request.method === 'OPTIONS') {
+      return new Response(null, { 
+        status: 204,
+        headers: corsHeaders 
+      });
+    }
+    
     // Handle WebSocket upgrade
     if (request.headers.get('Upgrade') === 'websocket') {
       const pair = new WebSocketPair();
@@ -68,6 +83,7 @@ export class GameRoom {
       return new Response(null, {
         status: 101,
         webSocket: client,
+        headers: corsHeaders,
       });
     }
 
@@ -77,11 +93,19 @@ export class GameRoom {
       
       if (body.action === 'init') {
         await this.initializeRoom(body.roomCode, body.username, body.userId);
-        return new Response(JSON.stringify({ success: true }));
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }
+        });
       }
     }
 
-    return new Response('Not Found', { status: 404 });
+    return new Response('Not Found', { 
+      status: 404,
+      headers: corsHeaders 
+    });
   }
 
   async initializeRoom(roomCode: string, username: string, userId: string): Promise<void> {
