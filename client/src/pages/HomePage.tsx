@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { PlayCircle, Users, Zap, Brain } from "lucide-react";
+import { PlayCircle, Users, Zap, Brain, Car } from "lucide-react";
 import Hyperspeed from "../components/Hyperspeed/Hyperspeed";
 import "./HomePage.scss";
 
@@ -26,6 +26,10 @@ function HomePage() {
           <button className="btn-hero" onClick={() => navigate("/lobby")}>
             <PlayCircle className="btn-icon" />
             <span>START PLAYING</span>
+          </button>
+          <button className="btn-hero btn-secondary" onClick={() => navigate("/local-racing")}>
+            <Car className="btn-icon" />
+            <span>LOCAL RACE (2P)</span>
           </button>
         </div>
 
