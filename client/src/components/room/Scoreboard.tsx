@@ -3,16 +3,15 @@ import "./Scoreboard.scss";
 
 interface ScoreboardProps {
   stats: Array<{
-    userId: string;
     username: string;
+    score: number;
     clownCount: number;
-    roundsPlayed: number;
   }>;
   onNextRound: () => void;
 }
 
 function Scoreboard({ stats, onNextRound }: ScoreboardProps) {
-  // Sort stats by clown count (highest = biggest clown)
+  // Sort stats by clownCount (highest = biggest clown)
   const sortedStats = [...stats].sort((a, b) => b.clownCount - a.clownCount);
   
   console.log('Scoreboard rendering with stats:', sortedStats);
@@ -35,7 +34,7 @@ function Scoreboard({ stats, onNextRound }: ScoreboardProps) {
         {sortedStats.length > 0 ? (
           sortedStats.map((stat, index) => (
             <div 
-              key={stat.userId} 
+              key={stat.username} 
               className={`standing-item ${index === 0 ? "rank-1" : ""}`}
             >
               <div className="rank">#{index + 1}</div>
@@ -64,7 +63,7 @@ function Scoreboard({ stats, onNextRound }: ScoreboardProps) {
             <TrendingUp className="stat-icon" />
             <div className="stat-label">Rounds</div>
           </div>
-          <div className="stat-value">{sortedStats[0]?.roundsPlayed || 0}</div>
+          <div className="stat-value">{sortedStats.length}</div>
         </div>
       </div>
 

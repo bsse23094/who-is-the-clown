@@ -211,6 +211,111 @@
         font-family: "Elms Sans", sans-serif;
         letter-spacing: 0.5px;
       }
+
+      .mode-selector {
+        padding: 1rem;
+        background: rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 4px;
+
+        .mode-selector-header {
+          margin-bottom: 1rem;
+
+          h3 {
+            font-size: 0.875rem;
+            font-weight: 400;
+            color: rgba(255, 255, 255, 0.8);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin: 0;
+            font-family: "Elms Sans", sans-serif;
+          }
+        }
+
+        .mode-options {
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+
+          .mode-option {
+            width: 100%;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: flex-start;
+            gap: 0.875rem;
+            text-align: left;
+
+            .mode-icon {
+              font-size: 2rem;
+              flex-shrink: 0;
+              transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              color: rgba(255, 255, 255, 0.7);
+
+              svg {
+                width: 32px;
+                height: 32px;
+              }
+            }
+
+            .mode-content {
+              flex: 1;
+
+              .mode-title {
+                font-size: 0.875rem;
+                font-weight: 500;
+                color: #fff;
+                margin-bottom: 0.35rem;
+                font-family: "Elms Sans", sans-serif;
+                letter-spacing: 0.5px;
+              }
+
+              .mode-description {
+                font-size: 0.75rem;
+                color: rgba(255, 255, 255, 0.6);
+                line-height: 1.4;
+                font-family: "Elms Sans", sans-serif;
+              }
+            }
+
+            &:hover {
+              background: rgba(255, 255, 255, 0.05);
+              border-color: rgba(255, 255, 255, 0.25);
+              transform: translateY(-2px);
+
+              .mode-icon {
+                transform: scale(1.1);
+              }
+            }
+
+            &.selected {
+              background: rgba(255, 255, 255, 0.1);
+              border-color: rgba(255, 255, 255, 0.4);
+              box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+
+              .mode-icon {
+                color: #fff;
+              }
+
+              .mode-title {
+                color: #fff;
+              }
+
+              .mode-description {
+                color: rgba(255, 255, 255, 0.8);
+              }
+            }
+          }
+        }
+      }
     }
   }
 

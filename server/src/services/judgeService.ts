@@ -1,6 +1,14 @@
-import { IRound } from "../models/Round";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import { env } from "../config/env";
+// Judge service for Cloudflare Workers (serverless)
+
+interface Answer {
+  userId: string;
+  text: string;
+}
+
+interface Vote {
+  voterId: string;
+  votedForId: string;
+}
 
 interface JudgeResult {
   clownUserId: string;
@@ -19,6 +27,11 @@ const ROASTS = [
   "That answer aged poorly immediately.",
   "You really went there, huh? Brave. Foolish, but brave.",
   "I admire your dedication to chaos.",
+  "Comedy gold? More like comedy mold.",
+  "That's one way to lose friends and alienate people.",
+  "Your answer deserves its own crime documentary.",
+  "I'm not mad, just disappointed... and confused.",
+  "You've successfully lowered the bar. Congratulations.",
 ];
 
 function getRandomRoast(): string {
@@ -28,21 +41,22 @@ function getRandomRoast(): string {
 /**
  * AI judge using Google Gemini
  */
-async function judgeWithAI(round: IRound): Promise<JudgeResult> {
-  if (!env.GEMINI_API_KEY) {
+export async function judgeWithAI(
+  answers: Answer[], 
+  prompt: string, 
+  apiKey: string
+): Promise<JudgeResult> {
+  if (!apiKey) {
     console.warn("⚠️  GEMINI_API_KEY not set, falling back to logic judge");
-    return judgeWithLogic(round);
+    return judgeWithLogic(answers);
   }
 
   try {
-    const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-
-    const answersText = round.answers
+    const answersText = answers
       .map((a, i) => `Answer ${i + 1}: "${a.text}"`)
       .join("\n");
 
-    const prompt = `You are judging a comedy game called "Who's the Clown?". The prompt was: "${round.prompt}"
+    const judgePrompt = `You are judging a comedy game called "Who's the Clown?". The prompt was: "${prompt}"
 
 Here are the answers:
 ${answersText}
@@ -54,9 +68,29 @@ Respond ONLY with a JSON object in this exact format:
 
 The answerIndex should be 0 for Answer 1, 1 for Answer 2, etc.`;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: judgePrompt
+            }]
+          }]
+        })
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`AI API error: ${response.status}`);
+    }
+
+    const data = await response.json() as any;
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
     // Extract JSON from response
     const jsonMatch = text.match(/\{[^}]+\}/);
@@ -67,37 +101,37 @@ The answerIndex should be 0 for Answer 1, 1 for Answer 2, etc.`;
     const aiResult = JSON.parse(jsonMatch[0]);
     const clownIndex = aiResult.answerIndex;
 
-    if (clownIndex < 0 || clownIndex >= round.answers.length) {
+    if (clownIndex < 0 || clownIndex >= answers.length) {
       throw new Error("Invalid answer index from AI");
     }
 
     return {
-      clownUserId: round.answers[clownIndex].user.toString(),
+      clownUserId: answers[clownIndex].userId,
       method: "ai",
       roast: aiResult.roast || getRandomRoast(),
     };
   } catch (error) {
     console.error("❌ AI judge error:", error);
     console.log("⚠️  Falling back to logic judge");
-    return judgeWithLogic(round);
+    return judgeWithLogic(answers);
   }
 }
 
 /**
  * Logic-based judge (longer answer loses)
  */
-function judgeWithLogic(round: IRound): JudgeResult {
-  if (round.answers.length < 2) {
+export function judgeWithLogic(answers: Answer[]): JudgeResult {
+  if (answers.length < 2) {
     throw new Error("Not enough answers to judge");
   }
 
   let maxLength = 0;
-  let clownUserId = round.answers[0].user.toString();
+  let clownUserId = answers[0].userId;
 
-  for (const answer of round.answers) {
+  for (const answer of answers) {
     if (answer.text.length > maxLength) {
       maxLength = answer.text.length;
-      clownUserId = answer.user.toString();
+      clownUserId = answer.userId;
     }
   }
 
@@ -111,13 +145,13 @@ function judgeWithLogic(round: IRound): JudgeResult {
 /**
  * Random judge (picks random answer)
  */
-function judgeWithRandom(round: IRound): JudgeResult {
-  if (round.answers.length < 2) {
+export function judgeWithRandom(answers: Answer[]): JudgeResult {
+  if (answers.length < 2) {
     throw new Error("Not enough answers to judge");
   }
 
-  const randomIndex = Math.floor(Math.random() * round.answers.length);
-  const clownUserId = round.answers[randomIndex].user.toString();
+  const randomIndex = Math.floor(Math.random() * answers.length);
+  const clownUserId = answers[randomIndex].userId;
 
   return {
     clownUserId,
@@ -127,25 +161,52 @@ function judgeWithRandom(round: IRound): JudgeResult {
 }
 
 /**
- * Main judge function - routes to appropriate judge based on mode
+ * Majority voting - tally votes and pick the person with most votes
  */
-export async function judge(round: IRound, mode?: string): Promise<JudgeResult> {
-  const judgeMode = mode || env.JUDGE_MODE;
-
-  console.log(`🎯 Judging with mode: ${judgeMode}`);
-
-  switch (judgeMode) {
-    case "ai":
-      return await judgeWithAI(round);
-    case "random":
-      return judgeWithRandom(round);
-    case "logic":
-      return judgeWithLogic(round);
-    case "vote":
-      // Voting handled separately in socket handlers
-      throw new Error("Vote mode requires separate handling");
-    default:
-      console.warn(`⚠️  Unknown judge mode: ${judgeMode}, using logic`);
-      return judgeWithLogic(round);
+export function tallyVotes(votes: Vote[], answers: Answer[]): JudgeResult {
+  if (votes.length === 0) {
+    throw new Error("No votes to tally");
   }
+
+  // Count votes for each user
+  const voteCount = new Map<string, number>();
+  
+  for (const vote of votes) {
+    const current = voteCount.get(vote.votedForId) || 0;
+    voteCount.set(vote.votedForId, current + 1);
+  }
+
+  // Find user with most votes
+  let maxVotes = 0;
+  let clownUserId = answers[0].userId;
+
+  for (const [userId, count] of voteCount.entries()) {
+    if (count > maxVotes) {
+      maxVotes = count;
+      clownUserId = userId;
+    }
+  }
+
+  // If there's a tie, pick randomly among tied players
+  const tiedPlayers = Array.from(voteCount.entries())
+    .filter(([_, count]) => count === maxVotes)
+    .map(([userId]) => userId);
+
+  if (tiedPlayers.length > 1) {
+    clownUserId = tiedPlayers[Math.floor(Math.random() * tiedPlayers.length)];
+  }
+
+  const roasts = [
+    `The people have spoken! And they chose you with ${maxVotes} vote${maxVotes > 1 ? 's' : ''}.`,
+    `Democracy in action: ${maxVotes} vote${maxVotes > 1 ? 's' : ''} against you!`,
+    `By popular demand (${maxVotes} vote${maxVotes > 1 ? 's' : ''}), you're the clown!`,
+    `${maxVotes} ${maxVotes > 1 ? 'people' : 'person'} agreed: worst answer ever.`,
+    `Majority rules! And the majority thinks you're ridiculous.`,
+  ];
+
+  return {
+    clownUserId,
+    method: "vote",
+    roast: roasts[Math.floor(Math.random() * roasts.length)],
+  };
 }

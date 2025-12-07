@@ -51,6 +51,14 @@
           border: 1px solid rgba(255, 255, 255, 0.15);
           transition: all 0.2s ease;
           letter-spacing: 0.5px;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+
+          .crown-icon {
+            color: #ffd700;
+            filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.5));
+          }
 
           &:hover {
             border-color: rgba(255, 255, 255, 0.3);
@@ -88,6 +96,12 @@
         margin-bottom: 2rem;
         font-size: 0.875rem;
         letter-spacing: 0.5px;
+      }
+
+      .waiting-host {
+        color: #ffd700;
+        font-weight: 500;
+        margin-top: 1rem;
       }
 
       .btn-primary {

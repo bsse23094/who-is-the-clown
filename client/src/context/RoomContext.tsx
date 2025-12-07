@@ -3,9 +3,10 @@ import { createContext, useContext, useState, ReactNode } from "react";
 interface Room {
   _id: string;
   code: string;
-  status: string;
+  status?: string;
   players: any[];
   currentRound?: string;
+  judgeMode?: "ai" | "vote";
 }
 
 interface RoomContextValue {

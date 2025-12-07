@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogIn, PlusCircle, Loader2 } from "lucide-react";
+import { LogIn, PlusCircle, Loader2, Bot, Vote } from "lucide-react";
 import Hyperspeed from "../components/Hyperspeed/Hyperspeed";
-import { getSocket } from "../sockets/socketClient";
 import { useUser } from "../context/UserContext";
 import { useRoom } from "../context/RoomContext";
 import "./LobbyPage.scss";
+
+const API_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:8787';
 
 function LobbyPage() {
   const [username, setUsername] = useState("");
@@ -13,12 +14,14 @@ function LobbyPage() {
   const [isCreating, setIsCreating] = useState(true);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [judgeMode, setJudgeMode] = useState<"ai" | "vote">("ai");
+  const [showModeSelector, setShowModeSelector] = useState(false);
 
   const navigate = useNavigate();
   const { setUser } = useUser();
   const { setRoom } = useRoom();
 
-  const handleCreateRoom = () => {
+  const handleCreateRoom = async () => {
     if (!username.trim()) {
       setError("Please enter a username");
       return;
@@ -27,24 +30,39 @@ function LobbyPage() {
     setLoading(true);
     setError("");
 
-    const socket = getSocket();
+    try {
+      // Create room via HTTP API
+      const response = await fetch(`${API_URL}/api/rooms/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: username.trim() })
+      });
 
-    socket.once("room:created", ({ room, user }: any) => {
-      setUser(user);
-      setRoom(room);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create room');
+      }
+
+      const data = await response.json();
+      
+      // Set user and room data
+      setUser({ _id: data.userId, username: data.username });
+      setRoom({ 
+        _id: data.roomCode, 
+        code: data.roomCode,
+        judgeMode,
+        players: [{ _id: data.userId, username: data.username }]
+      });
+      
       setLoading(false);
-      navigate(`/room/${room._id}`);
-    });
-
-    socket.once("error", ({ message }: any) => {
-      setError(message);
+      navigate(`/room/${data.roomCode}`);
+    } catch (err: any) {
+      setError(err.message);
       setLoading(false);
-    });
-
-    socket.emit("room:create", { username: username.trim() });
+    }
   };
 
-  const handleJoinRoom = () => {
+  const handleJoinRoom = async () => {
     if (!username.trim()) {
       setError("Please enter a username");
       return;
@@ -58,21 +76,23 @@ function LobbyPage() {
     setLoading(true);
     setError("");
 
-    const socket = getSocket();
-
-    socket.once("room:joined", ({ room, user }: any) => {
-      setUser(user);
-      setRoom(room);
+    try {
+      const userId = Math.random().toString(36).substring(2) + Date.now().toString(36);
+      
+      // Set user and room data
+      setUser({ _id: userId, username: username.trim() });
+      setRoom({ 
+        _id: roomCode.trim().toUpperCase(), 
+        code: roomCode.trim().toUpperCase(),
+        players: []
+      });
+      
       setLoading(false);
-      navigate(`/room/${room._id}`);
-    });
-
-    socket.once("error", ({ message }: any) => {
-      setError(message);
+      navigate(`/room/${roomCode.trim().toUpperCase()}`);
+    } catch (err: any) {
+      setError(err.message);
       setLoading(false);
-    });
-
-    socket.emit("room:join", { roomCode: roomCode.trim().toUpperCase(), username: username.trim() });
+    }
   };
 
   return (
@@ -122,6 +142,46 @@ function LobbyPage() {
               className="input"
               maxLength={5}
             />
+          )}
+
+          {isCreating && (
+            <div className="mode-selector">
+              <div className="mode-selector-header">
+                <h3>Select Judge Mode</h3>
+              </div>
+              <div className="mode-options">
+                <button
+                  type="button"
+                  className={`mode-option ${judgeMode === "ai" ? "selected" : ""}`}
+                  onClick={() => setJudgeMode("ai")}
+                >
+                  <div className="mode-icon">
+                    <Bot size={32} />
+                  </div>
+                  <div className="mode-content">
+                    <div className="mode-title">AI Judge</div>
+                    <div className="mode-description">
+                      An AI analyzes all answers and picks the worst one with a personalized roast
+                    </div>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  className={`mode-option ${judgeMode === "vote" ? "selected" : ""}`}
+                  onClick={() => setJudgeMode("vote")}
+                >
+                  <div className="mode-icon">
+                    <Vote size={32} />
+                  </div>
+                  <div className="mode-content">
+                    <div className="mode-title">Majority Voting</div>
+                    <div className="mode-description">
+                      Players vote for the worst answer. The one with most votes becomes the clown!
+                    </div>
+                  </div>
+                </button>
+              </div>
+            </div>
           )}
 
           {error && <div className="error">{error}</div>}

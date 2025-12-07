@@ -12,6 +12,15 @@
       font-weight: 300;
       color: rgba(255, 255, 255, 0.9);
       margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+
+      .header-icon {
+        width: 32px;
+        height: 32px;
+      }
     }
 
     .clown-name {
@@ -75,6 +84,13 @@
           color: rgba(255, 255, 255, 0.95);
           margin-bottom: 0.5rem;
           font-size: 1.1rem;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+
+          .clown-icon {
+            color: rgba(252, 129, 129, 0.9);
+          }
         }
 
         .answer-text {
