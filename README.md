@@ -325,6 +325,3 @@ Having issues? Found a bug?
 **Have fun and may the best clown win! 🤡🎪**
 
 
----
-
-**Have fun and may the best clown win! 🤡🎉** 🎭
