@@ -25,7 +25,7 @@ export default function LocalRacingPage() {
   const [gameOver, setGameOver] = useState(false);
   const navigate = useNavigate();
 
-  const RACE_LENGTH = 500; // Total race distance
+  const RACE_LENGTH = 750; // Total race distance
   const FINISH_LINE_Z = -450; // Finish line position
   const winnerRef = useRef<string>('');
 
@@ -70,8 +70,8 @@ export default function LocalRacingPage() {
 
     // Create SMOOTH CURVED racing track as a ROAD PLATFORM (not tunnel)
     const trackGroup = new THREE.Group();
-    const trackWidth = 20; // Wider track
-    const raceLength = 500;
+    const trackWidth = 30; // Wider track
+    const raceLength = 750;
     
     // Create smooth curved path for racing with elevation changes
     const pathPoints: THREE.Vector3[] = [];
@@ -477,7 +477,7 @@ export default function LocalRacingPage() {
       });
 
       if (gameStarted && !gameOver) {
-        const baseSpeed = 0.4;
+        const baseSpeed = 0.6;
         
         // Rubber-banding: car behind gets speed boost
         const car1Behind = cars[0].position.z > cars[1].position.z;
