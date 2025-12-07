@@ -15,7 +15,6 @@ function LobbyPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [judgeMode, setJudgeMode] = useState<"ai" | "vote">("ai");
-  const [showModeSelector, setShowModeSelector] = useState(false);
 
   const navigate = useNavigate();
   const { setUser } = useUser();

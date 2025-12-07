@@ -22,7 +22,6 @@ function RoomPage() {
     "waiting" | "prompt" | "answering" | "voting" | "reveal" | "scoreboard"
   >("waiting");
   const [currentPrompt, setCurrentPrompt] = useState("");
-  const [currentRoundId, setCurrentRoundId] = useState("");
   const [timer, setTimer] = useState(30);
   const [result, setResult] = useState<any>(null);
   const [stats, setStats] = useState<any[]>([]);
@@ -74,7 +73,6 @@ function RoomPage() {
 
     socket.on("round_started", (data: any) => {
       console.log("Round started:", data);
-      setCurrentRoundId(data.roundId);
       setCurrentPrompt(data.prompt);
       setTimer(data.timer || 30);
       setGameState("prompt");

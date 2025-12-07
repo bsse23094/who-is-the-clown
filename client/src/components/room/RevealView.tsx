@@ -1,4 +1,4 @@
-import { Users, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import "./RevealView.scss";
 
 interface RevealViewProps {
