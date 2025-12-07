@@ -478,7 +478,6 @@ export default function LocalRacingPage() {
 
       if (gameStarted && !gameOver) {
         const speed = 0.4;
-        const gravity = 0.5;
 
         // Player 1 controls (WASD)
         if (keys['w']) {
