@@ -154,7 +154,7 @@ class CloudflareSocketClient {
 }
 
 // Export singleton instance
-const SOCKET_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:8787';
+const SOCKET_URL = import.meta.env.VITE_SERVER_URL || 'https://who-is-the-clown.bsse23094.workers.dev';
 let socketInstance: CloudflareSocketClient | null = null;
 
 export function getSocket(): CloudflareSocketClient {

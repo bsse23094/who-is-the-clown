@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:4000";
+const API_URL = import.meta.env.VITE_SERVER_URL || "https://who-is-the-clown.bsse23094.workers.dev";
 
 export async function createRoom(username: string) {
   const response = await fetch(`${API_URL}/api/rooms`, {
