@@ -14,6 +14,11 @@ class_name = "GameRoom"
 tag = "v1"
 new_sqlite_classes = ["GameRoom"]
 
+[[migrations]]
+tag = "v2"
+renamed_classes = []
+deleted_classes = ["RacingRoom"]
+
 [vars]
 CLIENT_ORIGIN = "*"
 

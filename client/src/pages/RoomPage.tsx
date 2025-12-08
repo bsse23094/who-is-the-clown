@@ -39,6 +39,19 @@ function RoomPage() {
     console.log('🎮 RoomPage: Setting up WebSocket connection for room', roomId);
     const socket = getSocket();
     
+    // Remove all existing listeners first to prevent duplicates
+    socket.off("joined");
+    socket.off("player_joined");
+    socket.off("player_left");
+    socket.off("host_changed");
+    socket.off("round_started");
+    socket.off("answer_update");
+    socket.off("voting_started");
+    socket.off("vote_update");
+    socket.off("round_result");
+    socket.off("round_ended");
+    socket.off("error");
+    
     // Connect to room via WebSocket
     socket.connect(roomId);
 
@@ -68,6 +81,24 @@ function RoomPage() {
       }
       if (data.hostId) {
         setHostId(data.hostId);
+      }
+    });
+
+    socket.on("player_left", (data: any) => {
+      console.log("Player left:", data);
+      if (data.players) {
+        setPlayers(data.players);
+      }
+      // If we're in a round and someone left, handle gracefully
+      // Game continues with remaining players
+    });
+
+    socket.on("host_changed", (data: any) => {
+      console.log("Host changed:", data);
+      setHostId(data.newHostId);
+      // Show notification that new host was assigned
+      if (data.newHostId === user?._id) {
+        alert(`You are now the host! You can start the next round.`);
       }
     });
 
@@ -114,6 +145,12 @@ function RoomPage() {
       }, 5000);
     });
 
+    socket.on("round_ended", (data: any) => {
+      console.log("Round ended:", data);
+      alert(data.reason || "Round ended");
+      setGameState("waiting");
+    });
+
     socket.on("error", (data: any) => {
       console.error("Socket error:", data);
       alert(data.message || "An error occurred");
@@ -122,8 +159,18 @@ function RoomPage() {
     return () => {
       console.log('🎮 RoomPage: Cleaning up WebSocket connection');
       clearTimeout(joinTimer);
-      // Don't disconnect on cleanup in dev mode (StrictMode runs effects twice)
-      // socket.disconnect();
+      // Remove all listeners on cleanup
+      socket.off("joined");
+      socket.off("player_joined");
+      socket.off("player_left");
+      socket.off("host_changed");
+      socket.off("round_started");
+      socket.off("answer_update");
+      socket.off("voting_started");
+      socket.off("vote_update");
+      socket.off("round_result");
+      socket.off("round_ended");
+      socket.off("error");
     };
   }, [user, room, roomId, navigate]);
 

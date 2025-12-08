@@ -38,7 +38,8 @@ export default function LocalRacingPage() {
     scene.fog = new THREE.Fog(0x000000, 50, 400);
 
     // Renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setClearColor(0x000000, 0); // Transparent background
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
     containerRef.current.appendChild(renderer.domElement);
@@ -347,9 +348,9 @@ export default function LocalRacingPage() {
       opacity: 0.8,
     });
 
-    for (let i = 0; i < 15; i++) {
+    for (let i = 0; i < 25; i++) {
       const boostPad = new THREE.Mesh(boostPadGeometry, boostPadMaterial.clone());
-      const t = (i * 30 + 40) / raceLength;
+      const t = (i * 25 + 30) / raceLength;
       const pathPoint = path.getPoint(Math.min(0.99, t));
       const x = pathPoint.x + (Math.random() - 0.5) * (trackWidth - 6);
       const z = pathPoint.z;
@@ -550,8 +551,14 @@ export default function LocalRacingPage() {
             
             // Reset if fallen too far
             if (car.position.y < -50) {
-              car.position.set(index === 0 ? -3 : 3, trackHeight + 2, Math.max(car.position.z, -50));
-              car.userData.velocity = { x: 0, y: 0, z: 0 };
+              if (!car.userData.isRespawning) {
+                car.userData.isRespawning = true;
+                setTimeout(() => {
+                  car.position.set(index === 0 ? -3 : 3, trackHeight + 2, Math.max(car.position.z, -50));
+                  car.userData.velocity = { x: 0, y: 0, z: 0 };
+                  car.userData.isRespawning = false;
+                }, 1000);
+              }
             }
           }
 

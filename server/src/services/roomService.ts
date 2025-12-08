@@ -75,3 +75,25 @@ export async function updateRoomStatus(
   if (!room) throw new AppError("Room not found", 404);
   return room;
 }
+
+export async function removePlayerFromRoom(roomId: string, userId: string) {
+  const room = await RoomModel.findById(roomId);
+  if (!room) throw new AppError("Room not found", 404);
+
+  // Remove player from the room
+  room.players = room.players.filter(
+    (playerId) => playerId.toString() !== userId
+  );
+
+  // If no players left, delete the room
+  if (room.players.length === 0) {
+    await RoomModel.findByIdAndDelete(roomId);
+    await UserModel.findByIdAndDelete(userId);
+    return null;
+  }
+
+  await room.save();
+  await UserModel.findByIdAndDelete(userId);
+  
+  return await RoomModel.findById(roomId).populate("players");
+}

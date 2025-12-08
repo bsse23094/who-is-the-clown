@@ -162,10 +162,13 @@ export class GameRoom {
       }
     });
 
-    webSocket.addEventListener('close', () => {
+    webSocket.addEventListener('close', async () => {
       if (userId) {
         this.sessions.delete(webSocket);
         console.log('User disconnected:', userId, 'remaining sessions:', this.sessions.size);
+        
+        // Handle player disconnect - remove from game
+        await this.handlePlayerDisconnect(userId);
       }
     });
   }
@@ -426,6 +429,121 @@ export class GameRoom {
     });
     
     console.log(`Broadcast ${message.type}: ${successCount} sent, ${failCount} failed, ${this.sessions.size} total sessions`);
+  }
+
+  async handlePlayerDisconnect(userId: string): Promise<void> {
+    if (!this.gameState) return;
+
+    console.log('Handling disconnect for user:', userId);
+    
+    // Find player
+    const playerIndex = this.gameState.players.findIndex(p => p.id === userId);
+    if (playerIndex === -1) return;
+
+    const wasHost = this.gameState.hostId === userId;
+    
+    // Remove player
+    this.gameState.players.splice(playerIndex, 1);
+    
+    // If no players left, room will be cleaned up by Durable Object garbage collection
+    if (this.gameState.players.length === 0) {
+      console.log('No players left, room will be garbage collected');
+      this.gameState = undefined;
+      await this.state.storage.deleteAll();
+      return;
+    }
+    
+    // If only 1 player left and in a round, end the round
+    if (this.gameState.players.length === 1 && this.gameState.currentRound) {
+      console.log('Only 1 player remaining, ending current round');
+      this.gameState.currentRound = undefined;
+      this.gameState.status = 'waiting';
+      await this.state.storage.put('gameState', this.gameState);
+      
+      this.broadcast({
+        type: 'round_ended',
+        reason: 'Not enough players to continue',
+      });
+    }
+    
+    // If host left, assign new host (first player in list)
+    if (wasHost) {
+      this.gameState.hostId = this.gameState.players[0].id;
+      console.log('New host assigned:', this.gameState.hostId, this.gameState.players[0].username);
+      
+      // Notify everyone about host change
+      this.broadcast({
+        type: 'host_changed',
+        newHostId: this.gameState.hostId,
+        newHostName: this.gameState.players[0].username,
+      });
+    }
+    
+    // Save updated state
+    await this.state.storage.put('gameState', this.gameState);
+    
+    // Notify remaining players
+    this.broadcast({
+      type: 'player_left',
+      userId,
+      players: this.gameState.players,
+    });
+    
+    // If we're in a round, check if we can continue
+    if (this.gameState.currentRound) {
+      const currentRound = this.gameState.currentRound;
+      
+      // Remove disconnected player's answer/vote if exists
+      currentRound.answers = currentRound.answers.filter(a => a.userId !== userId);
+      currentRound.votes = currentRound.votes.filter(v => v.voterId !== userId && v.votedForId !== userId);
+      
+      // Save updated round state
+      await this.state.storage.put('gameState', this.gameState);
+      
+      console.log('Round continues with remaining players. Checking if round should proceed...');
+      
+      // Check if all REMAINING players have answered
+      if (currentRound.answers.length >= this.gameState.players.length) {
+        console.log('All remaining players have answered. Proceeding to next phase.');
+        
+        if (currentRound.judgeMethod === 'vote') {
+          // Check if we also have all votes
+          if (currentRound.votes.length >= this.gameState.players.length) {
+            console.log('All remaining players have voted. Judging round.');
+            await this.judgeRound();
+          } else {
+            // Start/continue voting phase
+            this.broadcast({
+              type: 'voting_started',
+              answers: currentRound.answers,
+            });
+          }
+        } else {
+          // Auto-judge with AI/logic/random
+          console.log('Auto-judging round.');
+          await this.judgeRound();
+        }
+      } else if (currentRound.judgeMethod === 'vote' && currentRound.votes.length >= this.gameState.players.length) {
+        // All remaining players have voted
+        console.log('All remaining players have voted. Judging round.');
+        await this.judgeRound();
+      } else {
+        // Broadcast updated answer/vote status
+        this.broadcast({
+          type: 'answer_update',
+          answeredUserIds: currentRound.answers.map(a => a.userId),
+        });
+        
+        if (currentRound.judgeMethod === 'vote') {
+          this.broadcast({
+            type: 'vote_update',
+            votedUserIds: currentRound.votes.map(v => v.voterId),
+          });
+        }
+      }
+    }
+    
+    console.log('Player disconnect handled successfully');
   }
 
   generateId(): string {

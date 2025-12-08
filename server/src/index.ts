@@ -1,7 +1,8 @@
 // Cloudflare Worker entry point for serverless backend
 import { GameRoom } from './durable-objects/GameRoom';
+import { RacingRoom } from './durable-objects/RacingRoom';
 
-export { GameRoom };
+export { GameRoom, RacingRoom };
 
 export interface Env {
   GAME_ROOMS: DurableObjectNamespace;
